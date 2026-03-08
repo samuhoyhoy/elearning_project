@@ -25,6 +25,10 @@ ALLOWED_HOSTS = [
     "elearning-project-a9q6.onrender.com",
 ]
 
+CSRF_TRUSTED_ORIGINS = [
+    "https://elearning-project-a9q6.onrender.com",
+]
+
 # list of apps enabled for this project; custom apps come after
 INSTALLED_APPS = [
     'django.contrib.admin',
