@@ -29,6 +29,9 @@ CSRF_TRUSTED_ORIGINS = [
     "https://elearning-project-a9q6.onrender.com",
 ]
 
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
 # list of apps enabled for this project; custom apps come after
 INSTALLED_APPS = [
     'django.contrib.admin',
