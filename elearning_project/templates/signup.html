@@ -1,0 +1,14 @@
+{% extends "base.html" %}  <!-- base layout with navbar -->
+{% block title %}Sign Up{% endblock %}  <!-- set page title -->
+
+<!-- main body content begins -->
+{% block content %}  
+<!-- page heading -->
+<h1>Create Account</h1>
+<!-- form for user registration; POSTs back to same view -->
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button class="btn btn-primary" type="submit">Sign Up</button>
+</form>
+{% endblock %}

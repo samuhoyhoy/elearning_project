@@ -1,0 +1,200 @@
+{% extends "base.html" %} <!-- base layout with navbar -->
+{% block title %}Teacher Dashboard{% endblock %} <!-- set page title -->
+
+<!-- main content begins -->
+{% block content %}
+<h1 class="mb-3">Teacher Dashboard</h1>
+<p>Welcome, {{ profile.real_name }}!</p>
+
+<!-- section where teacher can post a status -->
+<h2>Status Updates</h2>
+<form method="post">
+    {% csrf_token %}
+    {{ status_form.as_p }}
+    <button type="submit">Post Update</button>
+</form>
+
+<!-- list status updates submitted by this user -->
+<h3>Your updates</h3>
+<ul>
+    {% for update in statuses %}
+        <li>{{ update.content }} <small>{{ update.created_at|date:"M d, Y H:i" }}</small></li>
+    {% empty %}
+        <li>No updates yet.</li>
+    {% endfor %}
+</ul>
+
+<!-- global feed showing latest statuses -->
+<h3>Recent updates from everyone</h3>
+<ul>
+    {% for update in all_statuses %}
+        <li><strong>{{ update.user.real_name }}</strong> – {{ update.content }}
+            <small>{{ update.created_at|date:"M d, Y H:i" }}</small>
+        </li>
+    {% empty %}
+        <li>No one has posted yet.</li>
+    {% endfor %}
+</ul>
+
+<!-- courses created by teacher -->
+<h2>Your Courses</h2>
+<div class="courses">
+    {% for course in profile.courses.all %}
+        <div class="course-card" style="border:1px solid #ccc; padding:1em; margin-bottom:1em;">
+            <h3>{{ course.title }}</h3>
+            <p>{{ course.description }}</p>
+            <a href="{% url 'delete_course' course.id %}" class="btn btn-danger btn-sm">Delete Course </a>
+
+            <!-- Materials -->
+            <h4>Materials</h4>
+            <ul>
+                {% for material in course.materials.all %}
+                    <li>
+                        <a href="{{ material.file.url }}">{{ material.title }}</a>
+                        (Uploaded {{ material.uploaded_at|date:"M d, Y" }})
+                        <a href="{% url 'delete_material' material.id %}" class="btn btn-danger btn-sm">Delete</a>
+                    </li>
+                {% empty %}
+                    <li>No materials uploaded yet.</li>
+                {% endfor %}
+            </ul>
+            <a href="{% url 'add_material' course.id %}">+ Add Material</a>
+
+            <!-- Enrolled Students -->
+            <h4>Enrolled Students</h4>
+            <ul>
+                {% for enrollment in course.enrollments.all %}
+                    <li>
+                        {{ enrollment.student.real_name }}
+                        <a href="{% url 'remove_student' course.id enrollment.student.id %}">Remove</a>
+                    </li>
+                {% empty %}
+                    <li>No students enrolled yet.</li>
+                {% endfor %}
+            </ul>
+
+            <!-- Feedback -->
+            <h4>Feedback</h4>
+                <ul>
+                    {% for fb in course.feedbacks.all %}
+                        <li>
+                            {{ fb.student.real_name }}: {{ fb.comment }} (Rating: {{ fb.rating }}/5)
+                            <small>{{ fb.created_at|date:"M d, Y H:i" }}</small>
+                            <a href="{% url 'delete_feedback' fb.id %}" class="btn btn-danger btn-sm">Delete</a>
+                        </li>
+                    {% empty %}
+                        <li>No feedback yet.</li>
+                    {% endfor %}
+                </ul>
+        </div>
+    {% empty %}
+        <p>No courses yet.</p>
+    {% endfor %}
+</div>
+
+<!-- Notifications -->
+<h2>Notifications</h2>
+<ul id="notifications-list">
+    {% for note in notifications %}
+        <li>
+            {{ note.message }} ({{ note.created_at }})
+            <a href="{% url 'mark_notification_read' note.id %}">Mark as read</a>
+        </li>
+    {% empty %}
+        <li>No new notifications</li>
+    {% endfor %}
+</ul>
+
+<script>
+function fetchNotifications() {
+    fetch("{% url 'get_notifications' %}")
+        .then(response => response.json())
+        .then(data => {
+            const list = document.getElementById("notifications-list");
+            list.innerHTML = "";
+            if (data.notifications.length === 0) {
+                list.innerHTML = "<li>No new notifications</li>";
+            } else {
+                data.notifications.forEach(note => {
+                    const li = document.createElement("li");
+                    li.innerHTML = `${note.message} (${note.created_at})
+                        <a href="/courses/notifications/${note.id}/read/">Mark as read</a>`;
+                    list.appendChild(li);
+                });
+            }
+        })
+        .catch(err => console.error("Error fetching notifications:", err));
+}
+fetchNotifications();
+setInterval(fetchNotifications, 10000);
+</script>
+
+<!-- Add Course -->
+<p><a href="{% url 'add_course' %}">+ Add a New Course</a></p>
+
+<!-- Search users -->
+<h2>User Search</h2>
+<form method="get">
+  <label for="id_query">Search by name or username:</label>
+  <input type="text" name="query" id="id_query" value="{{ form.query.value|default:'' }}">
+  
+  <label for="id_role">Role:</label>
+  <select name="role" id="id_role">
+    <option value="">All</option>
+    <option value="student" {% if form.role.value == "student" %}selected{% endif %}>Student</option>
+    <option value="teacher" {% if form.role.value == "teacher" %}selected{% endif %}>Teacher</option>
+  </select>
+  
+  <button type="submit">Search</button>
+</form>
+
+<!-- teachers can block or unblock student -->
+<div id="search-results">
+  <h3>Results</h3>
+  <ul>
+    {% for user in results %}
+      <li>
+        {{ user.real_name }} ({{ user.role }})
+        
+        {% if user.role == "student" %}
+            {% if user.id in blocked_student_ids %}
+                <a href="{% url 'unblock_student_global' user.id %}">Unblock</a>
+            {% else %}
+                <a href="{% url 'block_student_global' user.id %}">Block</a>
+            {% endif %}
+        {% endif %}
+      </li>
+    {% empty %}
+      <li>No users found.</li>
+    {% endfor %}
+  </ul>
+</div>
+
+<!-- Chat Room -->
+<h2>Chat Room</h2>
+<div id="chat-box" style="border:1px solid #ccc; height:200px; overflow-y:scroll;"></div>
+<input id="chat-message-input" type="text">
+<button id="chat-message-submit">Send</button>
+
+<script>
+const roomName = "global";  
+const chatSocket = new WebSocket(
+    'ws://' + window.location.host + '/ws/chat/' + roomName + '/'
+);
+
+chatSocket.onmessage = function(e) {
+    const data = JSON.parse(e.data);
+    const chatBox = document.getElementById('chat-box');
+    chatBox.innerHTML += '<p><strong>' + data.user + ':</strong> ' + data.message + '</p>';
+    chatBox.scrollTop = chatBox.scrollHeight;
+};
+
+document.getElementById('chat-message-submit').onclick = function() {
+    const input = document.getElementById('chat-message-input');
+    chatSocket.send(JSON.stringify({'message': input.value}));
+    input.value = '';
+};
+
+</script>
+
+{% endblock %}

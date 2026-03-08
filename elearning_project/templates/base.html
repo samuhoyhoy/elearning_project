@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">  <!-- responsive meta tag -->
+    <title>{% block title %}E-Learning{% endblock %}</title>  <!-- title block overridden by child templates -->
+    <!-- Bootstrap CDN for styling -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<!-- main navigation bar with conditional links -->
+<nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="{% url 'home' %}">E-Learning</a>  <!-- home link -->
+    <div class="collapse navbar-collapse">
+      <ul class="navbar-nav ms-auto">
+        {% if user.is_authenticated %}  <!-- show dashboard/logout when logged in -->
+          {% if user.userprofile.role == 'teacher' %}
+            <li class="nav-item"><a class="nav-link" href="{% url 'teacher_dashboard' %}">Dashboard</a></li>
+          {% else %}
+            <li class="nav-item"><a class="nav-link" href="{% url 'student_dashboard' %}">Dashboard</a></li>
+          {% endif %}
+          <li class="nav-item">
+            <!-- logout form as POST for security -->
+            <form action="{% url 'logout' %}" method="post" class="d-inline">
+              {% csrf_token %}
+              <button type="submit" class="nav-link btn btn-link">Logout</button>
+            </form>
+          </li>
+        {% else %}  <!-- show login/signup to anonymous users -->
+          <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Login</a></li>
+          <li class="nav-item"><a class="nav-link" href="{% url 'signup' %}">Sign up</a></li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- page-specific content will be injected here by child templates -->
+<div class="container">
+    {% block content %}{% endblock %}
+</div>
+
+<!-- Bootstrap JS bundle for interactive components -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

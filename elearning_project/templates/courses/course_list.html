@@ -1,0 +1,34 @@
+{% extends "base.html" %}  <!-- base layout with navbar -->
+{% block title %}Available Courses{% endblock %}  <!-- sets page title -->
+
+<!-- content starts -->
+{% block content %}  
+<h1>Available Courses</h1>  
+<ul>
+    {% for course in courses %}  <!-- iterate over passed course queryset -->
+    <li>
+        {% if user.is_authenticated and user.userprofile.role == 'student' %}  <!-- student-specific actions -->
+        <a class="btn btn-sm btn-success" href="{% url 'enrol_course' course.id %}">Enrol</a>
+        {% if course.id in enrolled_course_ids %} |  <!-- if already enrolled, show feedback link -->
+        <a class="btn btn-sm btn-primary" href="{% url 'add_feedback' course.id %}">Leave Feedback</a>
+        {% endif %}
+        {% endif %}
+        <strong>{{ course.title }}</strong> – {{ course.description }}  <!-- course info -->
+        <ul>  <!-- nested list of feedbacks for this course -->
+            {% for fb in course.feedbacks.all %}
+            <li>
+                {{ fb.student.real_name }}: {{ fb.comment }} (Rating: {{ fb.rating }}/5)
+                <small>{{ fb.created_at|date:"M d, Y H:i" }}</small>
+            </li>
+            {% empty %}
+            <li>No feedback yet for this course.</li>
+            {% endfor %}
+        </ul>
+    </li>
+    {% empty %}
+    <li>No courses available.</li>
+    {% endfor %}
+</ul>
+
+<p><a href="{{ previous_url }}">Back</a></p>  <!-- back link passed from view -->
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends "base.html" %} <!-- base layout with navbar -->
+{% block title %}Add Course{% endblock %} <!-- set page title -->
+
+<!-- start main content area -->
+{% block content %}  
+<h1>Add a New Course</h1>  <!-- heading for form -->
+<form method="post" enctype="multipart/form-data">  <!-- multipart for file fields if any -->
+    {% csrf_token %}  
+    {{ form.as_p }}  
+    <button class="btn btn-primary" type="submit">Create Course</button>
+</form>
+
+<p><a href="{% url 'teacher_dashboard' %}">Back to Teacher dashboard</a></p>  <!-- back to teacher dashboard -->
+{% endblock %}

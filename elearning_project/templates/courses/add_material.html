@@ -1,0 +1,9 @@
+<h1>Add Material to {{ course.title }}</h1>  <!-- set page title -->
+
+<form method="post" enctype="multipart/form-data">  <!-- file-upload form -->
+    {% csrf_token %}  
+    {{ form.as_p }}  
+    <button type="submit">Upload</button>
+</form>
+
+<p><a href="{% url 'teacher_dashboard' %}">Back to Teacher dashboard</a></p>  <!-- back to teacher dashboard -->

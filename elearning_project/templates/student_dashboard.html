@@ -1,0 +1,171 @@
+{% extends "base.html" %}  <!-- base layout with navbar -->
+{% block title %}Student Dashboard{% endblock %}  <!-- set page title -->
+
+<!-- main content begins -->
+{% block content %} 
+<h1 class="mb-3">Student Dashboard</h1>  
+<p>Welcome, {{ profile.real_name }}!</p>  
+
+<!-- section where student can post a status -->
+<h2>Status Updates</h2>  
+<form method="post">  
+    {% csrf_token %}  
+    {{ status_form.as_p }}  
+    <button type="submit">Post Update</button>
+</form>
+
+<!-- list status updates submitted by this user -->
+<h3>Your updates</h3>  
+<ul>
+    {% for update in statuses %}
+        <li>{{ update.content }} <small>{{ update.created_at|date:"M d, Y H:i" }}</small></li>
+    {% empty %}
+        <li>No updates yet.</li>
+    {% endfor %}
+</ul>
+
+<!-- global feed showing latest statuses -->
+<h3>Recent updates from everyone</h3>  
+<ul>
+    {% for update in all_statuses %}
+        <li><strong>{{ update.user.real_name }}</strong> – {{ update.content }}
+            <small>{{ update.created_at|date:"M d, Y H:i" }}</small>
+        </li>
+    {% empty %}
+        <li>No one has posted yet.</li>
+    {% endfor %}
+</ul>
+
+<!-- display a message whether the student is blocked or not -->
+{% if messages %}  
+<div class="messages">
+    {% for message in messages %}
+        <div class="message {{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- student's current course enrollments -->
+<h2>Your Enrolled Courses</h2>  
+<div class="courses">
+    {% for enrollment in enrollments %}
+        <div class="course-card" style="border:1px solid #ccc; padding:1em; margin-bottom:1em;">
+            <h3>{{ enrollment.course.title }}</h3>
+            <p>{{ enrollment.course.description }}</p>
+            <a href="{% url 'unenroll_course' enrollment.course.id %}" class="btn btn-danger btn-sm">Unenroll</a>
+
+            <!-- Materials -->
+            <h4>Materials</h4>
+            <ul>
+                {% for material in enrollment.course.materials.all %}
+                    <li>
+                        <a href="{{ material.file.url }}">{{ material.title }}</a>
+                        <small>(Uploaded {{ material.uploaded_at|date:"M d, Y H:i" }})</small>
+                    </li>
+                {% empty %}
+                    <li>No materials uploaded yet.</li>
+                {% endfor %}
+            </ul>
+
+            <!-- Feedback -->
+            <h4>Feedback</h4>
+            <ul>
+                {% for fb in enrollment.course.feedbacks.all %}
+                    <li>
+                        <strong>{{ fb.student.real_name }}</strong>: {{ fb.comment }}
+                        <small>(Rating: {{ fb.rating }}/5, {{ fb.created_at|date:"M d, Y H:i" }})</small>
+                    </li>
+                {% empty %}
+                    <li>No feedback yet.</li>
+                {% endfor %}
+            </ul>
+            <a href="{% url 'add_feedback' enrollment.course.id %}">Leave Feedback</a>
+        </div>
+    {% empty %}
+        <p>You are not enrolled in any courses yet.</p>
+    {% endfor %}
+</div>
+
+<!-- list of all courses, can enrol if not already -->
+<h2>Available Courses</h2>  
+<ul>
+    {% for course in all_courses %}
+    <li>
+        {{ course.title }} - {{ course.description }}
+        {% if course.id in enrolled_course_ids %}
+        <em>Already enrolled</em>
+        {% else %}
+        <a href="{% url 'enrol_course' course.id %}">Enroll</a>
+        {% endif %}
+    </li>
+    {% empty %}
+    <li>No courses available at the moment.</li>
+    {% endfor %}
+</ul>
+
+<!-- unread notifications for the student -->
+<h2>Notifications</h2>  
+<ul id="notifications-list">
+    {% for note in notifications %}
+        <li>
+            {{ note.message }} ({{ note.created_at }})
+            <a href="{% url 'mark_notification_read' note.id %}">Mark as read</a>
+        </li>
+    {% empty %}
+        <li>No new notifications</li>
+    {% endfor %}
+</ul>
+
+<script>
+function fetchNotifications() {
+    fetch("{% url 'get_notifications' %}")
+        .then(response => response.json())
+        .then(data => {
+            const list = document.getElementById("notifications-list");
+            list.innerHTML = "";
+            if (data.notifications.length === 0) {
+                list.innerHTML = "<li>No new notifications</li>";
+            } else {
+                data.notifications.forEach(note => {
+                    const li = document.createElement("li");
+                    li.innerHTML = `${note.message} (${note.created_at})
+                        <a href="/courses/notifications/${note.id}/read/">Mark as read</a>`;
+                    list.appendChild(li);
+                });
+            }
+        })
+        .catch(err => console.error("Error fetching notifications:", err));
+}
+fetchNotifications();
+setInterval(fetchNotifications, 10000);
+</script>
+
+<!-- Chat Room -->
+<h2>Chat Room</h2>  
+<div id="chat-box" style="border:1px solid #ccc; height:200px; overflow-y:scroll;"></div>
+<input id="chat-message-input" type="text">
+<button id="chat-message-submit">Send</button>
+
+<script>
+    const roomName = "global";
+    const chatSocket = new WebSocket(
+        'ws://' + window.location.host + '/ws/chat/' + roomName + '/'
+    );
+
+    chatSocket.onmessage = function (e) {
+        const data = JSON.parse(e.data);
+        const chatBox = document.getElementById('chat-box');
+        chatBox.innerHTML += '<p><strong>' + data.user + ':</strong> ' + data.message + '</p>';
+        chatBox.scrollTop = chatBox.scrollHeight;
+    };
+
+    document.getElementById('chat-message-submit').onclick = function () {
+        const input = document.getElementById('chat-message-input');
+        chatSocket.send(JSON.stringify({
+            'message': input.value
+        }));
+        input.value = '';
+    };
+</script>
+
+{% endblock %}
