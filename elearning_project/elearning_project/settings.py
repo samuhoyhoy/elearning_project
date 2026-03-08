@@ -7,6 +7,7 @@ development and production (though debug is currently True).
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 # BASE_DIR points to the project root (elearning_project/)
@@ -18,7 +19,7 @@ SECRET_KEY = 'django-insecure-sx(1*@t-xt2r^mq2cwi$zbdhrlxz+9qd_hmei5q4_z2m-v-a2^
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "").split(",")
 
 # list of apps enabled for this project; custom apps come after
 INSTALLED_APPS = [
