@@ -19,7 +19,11 @@ SECRET_KEY = 'django-insecure-sx(1*@t-xt2r^mq2cwi$zbdhrlxz+9qd_hmei5q4_z2m-v-a2^
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "").split(",")
+ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1",
+    "elearning-project-a9q6.onrender.com",
+]
 
 # list of apps enabled for this project; custom apps come after
 INSTALLED_APPS = [
